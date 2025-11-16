@@ -1,4 +1,3 @@
-
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
@@ -18,7 +17,7 @@ public class Controller : MonoBehaviour
     private string _sceneName;
     private AudioSource _audioSource;
     private List<AudioClip> _soundEffects;
-    private int currentSceneIndex;
+    private int _currentSceneIndex;
 
     
 
@@ -44,7 +43,7 @@ public class Controller : MonoBehaviour
     {
         Run($"{_sceneName}");
 
-        currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
+        _currentSceneIndex = SceneManager.GetActiveScene().buildIndex;
 
     }
 
@@ -58,14 +57,14 @@ public class Controller : MonoBehaviour
 
         private void LoadNextScene()
     {
-        currentSceneIndex++;
+        _currentSceneIndex++;
         
-        if (currentSceneIndex > SceneManager.sceneCountInBuildSettings)
+        if (_currentSceneIndex > SceneManager.sceneCountInBuildSettings)
         {
-            currentSceneIndex = 0;
+            _currentSceneIndex = 0;
         }
 
-        SceneManager.LoadScene(currentSceneIndex);
+        SceneManager.LoadScene(_currentSceneIndex);
     }
     
     public void Run(string selectedGraphName)
@@ -137,7 +136,7 @@ public class Controller : MonoBehaviour
     // Listens to events emitted by the View when an Activity is clicked, then update the Model and the View.
     private void OnActivityExecuted(string activityId)
     {
-
+        
         if(GameSettings.ActiveCamera != CameraMode.BirdsEye)
         {   
             if(activityId == "Activity8")
@@ -150,12 +149,17 @@ public class Controller : MonoBehaviour
             _audioSource.Play();
         }
         _model.ExecuteActivity(activityId);
+        
+        // on execute exit update the State
+        _model.CheckAndRecordActivityStates();
 
         UpdateView();
     }
     
     private void OnActivityExecuteRefused(string activityId)
-    {
+    {   // on refuse execute entry update the State
+        _model.CheckAndRecordActivityStates();
+        
         if(GameSettings.ActiveCamera != CameraMode.BirdsEye)
         {   
             _audioSource.clip = _soundEffects[1];

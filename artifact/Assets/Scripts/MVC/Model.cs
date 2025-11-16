@@ -1,4 +1,4 @@
-
+using MVC;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -56,6 +56,53 @@ public class Model : MonoBehaviour
         #endif
 
         return jsonText;
+    }
+    public void CheckAndRecordActivityStates()
+    {
+        var activityStates = new Dictionary<string, ActivityState>();
+
+        // yoinked the already existing infrastructure from the model.
+        foreach (var activityId in ActivityIds)
+        {
+            // Check if activity is allowed based on DCR rules
+            bool isAllowed = IsActivityAllowed(activityId);
+            bool isIncluded = Included.Contains(activityId);
+            bool isExecuted = Executed.Contains(activityId);
+            string activityName = ActivityLabels.GetValueOrDefault(activityId, activityId);
+
+            var state = new ActivityState(
+                activityId,
+                activityName,
+                isAllowed,
+                isIncluded,
+                isExecuted
+            );
+
+            activityStates[activityId] = state;
+        }
+
+        // update the current instances table
+        ActivityStateTracker.Instance.RecordActivityStates(activityStates);
+    }
+
+    // Helper method to check if an activity is allowed to be executed
+    private bool IsActivityAllowed(string activityId)
+    {
+        // Activity must be included
+        if (!Included.Contains(activityId))
+            return false;
+
+        // Check if all conditions are met
+        if (Conditions.TryGetValue(activityId, out HashSet<string> conditionActivities))
+        {
+            if (conditionActivities.Any(conditionActivityId => !Executed.Contains(conditionActivityId)))
+            {
+                return false;
+            }
+        }
+
+        // Check if all milestones are satisfied
+        return !Milestones.TryGetValue(activityId, out HashSet<string> milestoneActivities) || milestoneActivities.All(milestoneActivityId => !Pending.Contains(milestoneActivityId));
     }
     
     public void ProcessJsonFile(string jsonText)
